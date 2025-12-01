@@ -1,0 +1,104 @@
+# -------------------------
+# Python
+# -------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-wheel-metadata/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+pytestdebug.log
+
+# MyPy / Pyre / Pytype
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Pylint
+pylint.log
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Local config files
+*.env
+*.envrc
+.env.*
+
+# Data files you don't want in git
+data/**/*.tmp
+data/**/*.raw
+data/**/*.bak
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Compiled Bytecode
+*.pyo
+*.pyd
+*.pkl
+*.pickle
+
+# Poetry / Pipenv
+poetry.lock
+Pipfile.lock
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# -------------------------
+# Project-specific
+# -------------------------
+
+# Logs from cron / GitHub Actions
+log_aaa_cron.log
+
+# Model artifacts
+models/
+*.joblib
+*.h5
+*.keras
+
+# Cache directories
+.cache/
+.cache/**
