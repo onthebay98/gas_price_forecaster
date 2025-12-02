@@ -43,46 +43,43 @@ jobs:
         run: |
           python -m src.pipelines.log_aaa
 
-      - name: Commit and push changes
+      # 1. Commit Local Changes
+      - name: Commit local data file
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-
           git add data/aaa_daily.csv
-
-          # Exit cleanly if nothing changed
           if git diff --cached --quiet; then
             echo "No changes to commit"
             exit 0
           fi
-
           git commit -m "Update AAA gas price"
+        # If no changes were made, this step will exit 0 and stop the job gracefully.
 
-          # 1. Fetch the latest from origin/main
+      # 2. Attempt Rebase (Tolerance for Failure)
+      - name: Fetch and attempt rebase
+        run: |
           git fetch origin main
+          # This command is expected to fail (exit 1) if there's a conflict.
+          git pull --rebase --autostash origin main
+        # CRITICAL: Allow this step to fail if there's a conflict
+        continue-on-error: true
 
-          # 2. ATTEMPT REBASE: Use '|| true' to prevent the step from failing 
-          #    immediately if a conflict occurs, allowing us to resolve it.
-          if git pull --rebase --autostash origin main || true; then
-              
-              # 3. CONFLICT CHECK AND RESOLUTION
-              # Check if the rebase command above actually resulted in a conflict
-              if git status | grep 'rebase in progress'; then
-                  echo "Rebase conflict detected. Manually resolving..."
-                  
-                  # Since we only modified the CSV, we keep the staged version ('ours')
-                  git checkout --ours data/aaa_daily.csv
-                  git add data/aaa_daily.csv
-                  
-                  # Finish the rebase
-                  git rebase --continue
-                  echo "Conflict resolved and rebase completed."
-              else
-                  echo "Rebase successful or no conflict occurred."
-              fi
-          
-              # 4. Push safely. This push should now succeed because the rebase completed.
-              git push --force-with-lease origin HEAD:main
+      # 3. Resolve Conflict (Only runs if a conflict occurred in step 2)
+      - name: Resolve conflict if needed
+        # We check if Git is currently in a 'rebase in progress' state.
+        if: steps['Attempt Rebase'].outcome == 'failure' && success()
+        run: |
+          echo "Conflict detected. Resolving..."
+          # Keep the local version ('ours') of the CSV file
+          git checkout --ours data/aaa_daily.csv
+          git add data/aaa_daily.csv
+          # Finish the rebase
+          git rebase --continue
+          echo "Conflict resolved."
 
-          # The outer if/then structure is primarily for readability here.
-          # The key is that the rebase attempt is now non-fatal due to '|| true'.
+      # 4. Push Changes
+      - name: Push new commit
+        run: |
+          # Push safely after rebase (successful or resolved)
+          git push --force-with-lease origin HEAD:main
