@@ -61,20 +61,28 @@ jobs:
           # 1. Fetch the latest from origin/main
           git fetch origin main
 
-          # 2. Try to rebase your new commit on top of the latest remote commit
-          #    If this fails due to conflicts, we'll manually resolve in step 3.
-          if git pull --rebase --autostash origin main; then
-              echo "Rebase successful, proceeding to push."
-          else
-              echo "Rebase conflict detected. Manually resolving..."
-              # 3. CONFLICT RESOLUTION: Since we only modified the CSV, 
-              #    we always want to keep the latest changes (i.e., the one 
-              #    already staged/committed by the action).
-              git checkout --ours data/aaa_daily.csv
-              git add data/aaa_daily.csv
-              git rebase --continue
-              echo "Conflict resolved and rebase completed."
-          fi
+          # 2. ATTEMPT REBASE: Use '|| true' to prevent the step from failing 
+          #    immediately if a conflict occurs, allowing us to resolve it.
+          if git pull --rebase --autostash origin main || true; then
+              
+              # 3. CONFLICT CHECK AND RESOLUTION
+              # Check if the rebase command above actually resulted in a conflict
+              if git status | grep 'rebase in progress'; then
+                  echo "Rebase conflict detected. Manually resolving..."
+                  
+                  # Since we only modified the CSV, we keep the staged version ('ours')
+                  git checkout --ours data/aaa_daily.csv
+                  git add data/aaa_daily.csv
+                  
+                  # Finish the rebase
+                  git rebase --continue
+                  echo "Conflict resolved and rebase completed."
+              else
+                  echo "Rebase successful or no conflict occurred."
+              fi
           
-          # 4. Push safely.
-          git push --force-with-lease origin HEAD:main
+              # 4. Push safely. This push should now succeed because the rebase completed.
+              git push --force-with-lease origin HEAD:main
+
+          # The outer if/then structure is primarily for readability here.
+          # The key is that the rebase attempt is now non-fatal due to '|| true'.
