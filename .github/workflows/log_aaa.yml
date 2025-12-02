@@ -58,10 +58,23 @@ jobs:
 
           git commit -m "Update AAA gas price"
 
-          # Ensure we have the absolute latest from origin and rebase our commit(s) on top of it.
-          # This will fail (non-zero) if there are rebase conflicts; that's preferable to a rejected push.
+          # 1. Fetch the latest from origin/main
           git fetch origin main
-          git pull --rebase --autostash origin main
 
-          # Push safely. --force-with-lease avoids stomping other people's new commits.
+          # 2. Try to rebase your new commit on top of the latest remote commit
+          #    If this fails due to conflicts, we'll manually resolve in step 3.
+          if git pull --rebase --autostash origin main; then
+              echo "Rebase successful, proceeding to push."
+          else
+              echo "Rebase conflict detected. Manually resolving..."
+              # 3. CONFLICT RESOLUTION: Since we only modified the CSV, 
+              #    we always want to keep the latest changes (i.e., the one 
+              #    already staged/committed by the action).
+              git checkout --ours data/aaa_daily.csv
+              git add data/aaa_daily.csv
+              git rebase --continue
+              echo "Conflict resolved and rebase completed."
+          fi
+          
+          # 4. Push safely.
           git push --force-with-lease origin HEAD:main
