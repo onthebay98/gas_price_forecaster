@@ -47,6 +47,9 @@ def prob_in_range(mean: float, std: float, low: float, high: float) -> float:
 
 # ---------- trade signal logic ----------
 
+ActionType = Literal["buy_yes", "sell_yes", "buy_no", "sell_no", "no_trade"]
+
+
 @dataclass
 class TradeSignal:
     contract_type: Literal["above", "range"]
@@ -63,58 +66,80 @@ class TradeSignal:
     fee_per_contract: float
 
     ev_buy_yes: float
+    ev_sell_yes: float
     ev_buy_no: float
+    ev_sell_no: float
 
-    best_action: Literal["buy_yes", "buy_no", "no_trade"]
-
-
-def _build_prices_from_yes(yes_bid: float, yes_ask: float) -> tuple[float, float]:
-    """
-    Derive NO prices from YES bid/ask using the parity:
-      no_bid = 1 - yes_ask
-      no_ask = 1 - yes_bid
-    """
-    if not (0.0 <= yes_bid <= 1.0 and 0.0 <= yes_ask <= 1.0):
-        raise ValueError("YES bid/ask must be between 0 and 1")
-    if yes_bid > yes_ask:
-        raise ValueError("YES bid cannot be greater than YES ask")
-
-    no_bid = 1.0 - yes_ask
-    no_ask = 1.0 - yes_bid
-    return no_bid, no_ask
+    best_action: ActionType
+    best_ev: float
 
 
-def _compute_ev(
+def _compute_all_evs(
     p_yes: float,
     yes_bid: float,
     yes_ask: float,
+    no_bid: float,
+    no_ask: float,
     fee_per_contract: float,
-) -> tuple[float, float, float, float, Literal["buy_yes", "buy_no", "no_trade"]]:
+) -> dict[ActionType, float]:
     """
-    Compute EV of buying YES vs buying NO, given
-    model probability p_yes and YES bid/ask.
-
-    Returns:
-      (no_bid, no_ask, ev_buy_yes, ev_buy_no, best_action)
+    Compute EV for buying/selling YES/NO given model probability and full
+    YES/NO bid/ask.
     """
-    no_bid, no_ask = _build_prices_from_yes(yes_bid, yes_ask)
+    for name, v in {
+        "yes_bid": yes_bid,
+        "yes_ask": yes_ask,
+        "no_bid": no_bid,
+        "no_ask": no_ask,
+    }.items():
+        if not (0.0 <= v <= 1.0):
+            raise ValueError(f"{name} must be between 0 and 1 (got {v})")
 
-    # EV of buying YES at yes_ask and holding to expiry (per $1 contract)
+    p_no = 1.0 - p_yes
+
+    # Buy YES at ask
     ev_buy_yes = p_yes - yes_ask - fee_per_contract
 
-    # EV of buying NO at no_ask and holding to expiry (per $1 contract)
-    p_no = 1.0 - p_yes
+    # Sell YES at bid
+    ev_sell_yes = yes_bid - p_yes - fee_per_contract
+
+    # Buy NO at ask
     ev_buy_no = p_no - no_ask - fee_per_contract
 
-    # Choose best action by EV
-    if ev_buy_yes <= 0 and ev_buy_no <= 0:
-        best_action: Literal["buy_yes", "buy_no", "no_trade"] = "no_trade"
-    elif ev_buy_yes >= ev_buy_no:
-        best_action = "buy_yes"
-    else:
-        best_action = "buy_no"
+    # Sell NO at bid
+    ev_sell_no = no_bid - p_no - fee_per_contract
 
-    return no_bid, no_ask, ev_buy_yes, ev_buy_no, best_action
+    return {
+        "buy_yes": ev_buy_yes,
+        "sell_yes": ev_sell_yes,
+        "buy_no": ev_buy_no,
+        "sell_no": ev_sell_no,
+        "no_trade": 0.0,
+    }
+
+
+def _select_best_action(
+    evs: dict[ActionType, float],
+    ev_threshold: float,
+) -> tuple[ActionType, float]:
+    """
+    Pick the action with the highest EV that exceeds ev_threshold.
+    If none exceed, return ("no_trade", 0).
+    """
+    # Ignore no_trade in max calculation
+    best_action: ActionType = "no_trade"
+    best_ev = 0.0
+
+    for action in ["buy_yes", "sell_yes", "buy_no", "sell_no"]:
+        ev = evs[action]  # type: ignore[index]
+        if ev > best_ev:
+            best_ev = ev
+            best_action = action  # type: ignore[assignment]
+
+    if best_ev < ev_threshold:
+        return "no_trade", 0.0
+
+    return best_action, best_ev
 
 
 def compute_signal_above(
@@ -122,33 +147,27 @@ def compute_signal_above(
     threshold: float,
     yes_bid: float,
     yes_ask: float,
+    no_bid: float,
+    no_ask: float,
     fee_per_contract: float = 0.0,
     ev_threshold: float = 0.02,
 ) -> TradeSignal:
     """
     Contract: 'Will gas be >= threshold on target_date?'
-
-    yes_bid / yes_ask: current order book for YES, in [0,1].
-    fee_per_contract: per-contract fee (e.g. 0.01 = 1 cent).
-    ev_threshold: minimum EV (in dollars per $1 contract) to issue a trade.
     """
     mean_f, std_f = forecast_price_for_date(target_date)
     model_prob = prob_above_threshold(mean_f, std_f, threshold)
 
-    no_bid, no_ask, ev_buy_yes, ev_buy_no, best_action_raw = _compute_ev(
+    evs = _compute_all_evs(
         model_prob,
-        yes_bid,
-        yes_ask,
-        fee_per_contract,
+        yes_bid=yes_bid,
+        yes_ask=yes_ask,
+        no_bid=no_bid,
+        no_ask=no_ask,
+        fee_per_contract=fee_per_contract,
     )
 
-    # Enforce EV threshold
-    if best_action_raw == "buy_yes" and ev_buy_yes < ev_threshold:
-        best_action: Literal["buy_yes", "buy_no", "no_trade"] = "no_trade"
-    elif best_action_raw == "buy_no" and ev_buy_no < ev_threshold:
-        best_action = "no_trade"
-    else:
-        best_action = best_action_raw
+    best_action, best_ev = _select_best_action(evs, ev_threshold)
 
     return TradeSignal(
         contract_type="above",
@@ -161,9 +180,12 @@ def compute_signal_above(
         no_bid=no_bid,
         no_ask=no_ask,
         fee_per_contract=fee_per_contract,
-        ev_buy_yes=ev_buy_yes,
-        ev_buy_no=ev_buy_no,
+        ev_buy_yes=evs["buy_yes"],
+        ev_sell_yes=evs["sell_yes"],
+        ev_buy_no=evs["buy_no"],
+        ev_sell_no=evs["sell_no"],
         best_action=best_action,
+        best_ev=best_ev,
     )
 
 
@@ -173,6 +195,8 @@ def compute_signal_range(
     high: float,
     yes_bid: float,
     yes_ask: float,
+    no_bid: float,
+    no_ask: float,
     fee_per_contract: float = 0.0,
     ev_threshold: float = 0.02,
 ) -> TradeSignal:
@@ -182,20 +206,16 @@ def compute_signal_range(
     mean_f, std_f = forecast_price_for_date(target_date)
     model_prob = prob_in_range(mean_f, std_f, low, high)
 
-    no_bid, no_ask, ev_buy_yes, ev_buy_no, best_action_raw = _compute_ev(
+    evs = _compute_all_evs(
         model_prob,
-        yes_bid,
-        yes_ask,
-        fee_per_contract,
+        yes_bid=yes_bid,
+        yes_ask=yes_ask,
+        no_bid=no_bid,
+        no_ask=no_ask,
+        fee_per_contract=fee_per_contract,
     )
 
-    # Enforce EV threshold
-    if best_action_raw == "buy_yes" and ev_buy_yes < ev_threshold:
-        best_action: Literal["buy_yes", "buy_no", "no_trade"] = "no_trade"
-    elif best_action_raw == "buy_no" and ev_buy_no < ev_threshold:
-        best_action = "no_trade"
-    else:
-        best_action = best_action_raw
+    best_action, best_ev = _select_best_action(evs, ev_threshold)
 
     return TradeSignal(
         contract_type="range",
@@ -208,9 +228,12 @@ def compute_signal_range(
         no_bid=no_bid,
         no_ask=no_ask,
         fee_per_contract=fee_per_contract,
-        ev_buy_yes=ev_buy_yes,
-        ev_buy_no=ev_buy_no,
+        ev_buy_yes=evs["buy_yes"],
+        ev_sell_yes=evs["sell_yes"],
+        ev_buy_no=evs["buy_no"],
+        ev_sell_no=evs["sell_no"],
         best_action=best_action,
+        best_ev=best_ev,
     )
 
 
@@ -221,28 +244,31 @@ def main(argv: Optional[list[str]] = None) -> int:
     Usage examples:
 
     1) Above-threshold contract (no fee):
-        python -m src.pipelines.trade_signal above 3.50 0.55 0.58
+       python -m src.pipelines.trade_signal above 2.95 0.59 0.61 0.04 0.06
 
-    2) Above-threshold with explicit date and fee (1 cent/contract):
-        python -m src.pipelines.trade_signal above 3.50 0.55 0.58 2025-12-06 0.01
+       -> threshold = 2.95
+          YES bid/ask = 0.59 / 0.61
+          NO  bid/ask = 0.04 / 0.06
+          target date = next Saturday
+          fee = 0
+
+    2) Above-threshold with explicit date and fee:
+       python -m src.pipelines.trade_signal above 2.95 0.59 0.61 0.04 0.06 2025-12-06 0.01
 
     3) Range contract:
-        python -m src.pipelines.trade_signal range 3.40 3.50 0.45 0.50
-
-    4) Range with explicit date and fee:
-        python -m src.pipelines.trade_signal range 3.40 3.50 0.45 0.50 2025-12-06 0.01
+       python -m src.pipelines.trade_signal range 2.90 3.00 0.45 0.48 0.52 0.55
     """
     if argv is None:
         argv = sys.argv[1:]
 
-    if len(argv) < 4:
+    if len(argv) < 6:
         print("Usage:", file=sys.stderr)
         print(
-            "  above <threshold> <yes_bid> <yes_ask> [YYYY-MM-DD] [fee_per_contract]",
+            "  above <threshold> <yes_bid> <yes_ask> <no_bid> <no_ask> [YYYY-MM-DD] [fee_per_contract]",
             file=sys.stderr,
         )
         print(
-            "  range <low> <high> <yes_bid> <yes_ask> [YYYY-MM-DD] [fee_per_contract]",
+            "  range <low> <high> <yes_bid> <yes_ask> <no_bid> <no_ask> [YYYY-MM-DD] [fee_per_contract]",
             file=sys.stderr,
         )
         return 1
@@ -253,19 +279,19 @@ def main(argv: Optional[list[str]] = None) -> int:
             threshold = float(argv[1])
             yes_bid = float(argv[2])
             yes_ask = float(argv[3])
+            no_bid = float(argv[4])
+            no_ask = float(argv[5])
 
-            # Optional date and fee
             target: date
             fee_per_contract: float
 
-            if len(argv) >= 5:
-                # Could be date or fee; detect using simple heuristic
-                if "-" in argv[4]:
-                    target = date.fromisoformat(argv[4])
-                    fee_per_contract = float(argv[5]) if len(argv) >= 6 else 0.0
+            if len(argv) >= 7:
+                if "-" in argv[6]:
+                    target = date.fromisoformat(argv[6])
+                    fee_per_contract = float(argv[7]) if len(argv) >= 8 else 0.0
                 else:
                     target = get_next_saturday()
-                    fee_per_contract = float(argv[4])
+                    fee_per_contract = float(argv[6])
             else:
                 target = get_next_saturday()
                 fee_per_contract = 0.0
@@ -275,6 +301,8 @@ def main(argv: Optional[list[str]] = None) -> int:
                 threshold,
                 yes_bid,
                 yes_ask,
+                no_bid,
+                no_ask,
                 fee_per_contract=fee_per_contract,
             )
 
@@ -283,14 +311,16 @@ def main(argv: Optional[list[str]] = None) -> int:
             high = float(argv[2])
             yes_bid = float(argv[3])
             yes_ask = float(argv[4])
+            no_bid = float(argv[5])
+            no_ask = float(argv[6])
 
-            if len(argv) >= 6:
-                if "-" in argv[5]:
-                    target = date.fromisoformat(argv[5])
-                    fee_per_contract = float(argv[6]) if len(argv) >= 7 else 0.0
+            if len(argv) >= 8:
+                if "-" in argv[7]:
+                    target = date.fromisoformat(argv[7])
+                    fee_per_contract = float(argv[8]) if len(argv) >= 9 else 0.0
                 else:
                     target = get_next_saturday()
-                    fee_per_contract = float(argv[5])
+                    fee_per_contract = float(argv[7])
             else:
                 target = get_next_saturday()
                 fee_per_contract = 0.0
@@ -301,6 +331,8 @@ def main(argv: Optional[list[str]] = None) -> int:
                 high,
                 yes_bid,
                 yes_ask,
+                no_bid,
+                no_ask,
                 fee_per_contract=fee_per_contract,
             )
         else:
@@ -309,18 +341,22 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"[ERROR] {e}", file=sys.stderr)
         return 1
 
-    print(f"Target date         : {signal.target_date.isoformat()}")
-    print(f"Forecast mean       : ${signal.mean_forecast:.3f}")
-    print(f"Forecast std dev    : {signal.std_forecast:.4f} (USD)")
-    print(f"Model P(YES)        : {signal.model_prob_yes:.3f}")
+    print(f"Target date          : {signal.target_date.isoformat()}")
+    print(f"Forecast mean        : ${signal.mean_forecast:.3f}")
+    print(f"Forecast std dev     : {signal.std_forecast:.4f} (USD)")
+    print(f"Model P(YES)         : {signal.model_prob_yes:.3f}")
     print()
-    print(f"YES bid / ask       : {signal.yes_bid:.3f} / {signal.yes_ask:.3f}")
-    print(f"NO  bid / ask       : {signal.no_bid:.3f} / {signal.no_ask:.3f}")
-    print(f"Fee per contract    : {signal.fee_per_contract:.3f}")
+    print(f"YES bid / ask        : {signal.yes_bid:.3f} / {signal.yes_ask:.3f}")
+    print(f"NO  bid / ask        : {signal.no_bid:.3f} / {signal.no_ask:.3f}")
+    print(f"Fee per contract     : {signal.fee_per_contract:.3f}")
     print()
-    print(f"EV buy YES (at ask) : {signal.ev_buy_yes:+.3f}")
-    print(f"EV buy NO  (at ask) : {signal.ev_buy_no:+.3f}")
-    print(f"Suggested action    : {signal.best_action}")
+    print(f"EV buy YES  (ask)    : {signal.ev_buy_yes:+.3f}")
+    print(f"EV sell YES (bid)    : {signal.ev_sell_yes:+.3f}")
+    print(f"EV buy NO   (ask)    : {signal.ev_buy_no:+.3f}")
+    print(f"EV sell NO  (bid)    : {signal.ev_sell_no:+.3f}")
+    print()
+    print(f"Best action          : {signal.best_action}")
+    print(f"Best EV              : {signal.best_ev:+.3f}")
 
     return 0
 
