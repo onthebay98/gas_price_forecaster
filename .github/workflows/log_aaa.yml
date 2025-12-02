@@ -9,7 +9,11 @@ concurrency:
 
 on:
   schedule:
-    - cron: "0 14 * * *"   # daily at 14:00 UTC (~9am ET)
+    # Use the 'branches' key to explicitly define which branch the cron job
+    # should track. This guarantees it uses the latest YAML from 'main'.
+    - cron: "0 14 * * *"
+      branches:
+        - main
   workflow_dispatch:
 
 jobs:
