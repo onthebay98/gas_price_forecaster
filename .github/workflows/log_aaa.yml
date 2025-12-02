@@ -6,7 +6,7 @@ permissions:
 on:
   schedule:
     - cron: "0 14 * * *"   # daily at 14:00 UTC (~9am ET)
-  workflow_dispatch:        # allow manual runs
+  workflow_dispatch:
 
 jobs:
   run_logger:
@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0      # full history so we can reset cleanly
+          fetch-depth: 0
           persist-credentials: true
           ref: main
 
@@ -46,7 +46,7 @@ jobs:
 
           git add data/aaa_daily.csv
 
-          # If nothing staged, bail out without error
+          # Exit cleanly if nothing changed
           if git diff --cached --quiet; then
             echo "No changes to commit"
             exit 0
@@ -54,9 +54,13 @@ jobs:
 
           git commit -m "Update AAA gas price"
 
-          # Make sure we have the absolute latest from origin/main and rebase our commit on it.
-          # If rebase fails, abort and fail the job so you can inspect and fix manually.
-          git fetch origin main git rebase --autostash origin/main || { echo "Rebase failed, aborting"; git rebase --abort || true; exit 1; }
+          # Get latest main and rebase properly (your previous line was malformed)
+          git fetch origin main
+          git rebase --autostash origin/main || {
+            echo "Rebase failed, aborting";
+            git rebase --abort || true;
+            exit 1;
+          }
 
-          # Use --force-with-lease to avoid overwriting remote work unexpectedly
+          # Push safely
           git push --force-with-lease origin HEAD:main
