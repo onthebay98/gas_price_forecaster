@@ -102,3 +102,11 @@ models/
 # Cache directories
 .cache/
 .cache/**
+
+# Ignore raw external data downloads
+data/eia_weekly_gas_raw.xls
+data/eia_weekly.csv
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
