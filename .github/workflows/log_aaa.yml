@@ -18,6 +18,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0      # full history so we can reset cleanly
+          persist-credentials: true
+          ref: main
 
       - name: Sync to origin/main
         run: |
@@ -52,5 +54,9 @@ jobs:
 
           git commit -m "Update AAA gas price"
 
-          # Force-push with lease to avoid non-fast-forward errors
+          # Make sure we have the absolute latest from origin/main and rebase our commit on it.
+          # If rebase fails, abort and fail the job so you can inspect and fix manually.
+          git fetch origin main git rebase --autostash origin/main || { echo "Rebase failed, aborting"; git rebase --abort || true; exit 1; }
+
+          # Use --force-with-lease to avoid overwriting remote work unexpectedly
           git push --force-with-lease origin HEAD:main
