@@ -3,6 +3,10 @@ name: Log AAA Gas Price Daily
 permissions:
   contents: write   # allow pushing to the repo
 
+concurrency:
+  group: log-aaa-gas-price
+  cancel-in-progress: true
+
 on:
   schedule:
     - cron: "0 14 * * *"   # daily at 14:00 UTC (~9am ET)
@@ -54,13 +58,10 @@ jobs:
 
           git commit -m "Update AAA gas price"
 
-          # Get latest main and rebase properly (your previous line was malformed)
+          # Ensure we have the absolute latest from origin and rebase our commit(s) on top of it.
+          # This will fail (non-zero) if there are rebase conflicts; that's preferable to a rejected push.
           git fetch origin main
-          git rebase --autostash origin/main || {
-            echo "Rebase failed, aborting";
-            git rebase --abort || true;
-            exit 1;
-          }
+          git pull --rebase --autostash origin main
 
-          # Push safely
+          # Push safely. --force-with-lease avoids stomping other people's new commits.
           git push --force-with-lease origin HEAD:main
