@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .fetch_aaa import fetch_aaa_national_regular
+from scripts.fetch_aaa import fetch_aaa_national_regular
 
 DATA_PATH = Path("data/aaa_daily.csv")
 

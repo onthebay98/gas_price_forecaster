@@ -110,3 +110,6 @@ data/eia_weekly.csv
 # Ignore Python cache files
 __pycache__/
 *.pyc
+
+# Claude Code
+.claude/

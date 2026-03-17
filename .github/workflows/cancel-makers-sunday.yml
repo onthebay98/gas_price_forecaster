@@ -1,0 +1,41 @@
+name: Cancel Gas Makers (Sunday Market Close)
+
+on:
+  schedule:
+    # Sunday 11:55 PM ET → Monday 03:55 UTC (EST) / 04:55 UTC (EDT)
+    # Use earlier time to cover both timezones
+    - cron: "55 3 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gas-cancel-makers
+  cancel-in-progress: false
+
+jobs:
+  cancel:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Cancel all gas maker orders
+        env:
+          KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
+          KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
+        run: |
+          python -m src.cli_maker_submit --cancel-all

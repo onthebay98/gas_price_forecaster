@@ -41,7 +41,7 @@ jobs:
 
       - name: Run AAA Logger
         run: |
-          python -m src.pipelines.log_aaa
+          PYTHONPATH=. python -m scripts.log_aaa
 
       # 1. Commit Local Changes
       - name: Commit local data file

@@ -1,0 +1,316 @@
+name: Gas Price Monitor (Kalshi)
+
+on:
+  schedule:
+    # Every 15 min during active hours (7 AM – 10 PM ET)
+    # GitHub cron is UTC. EST = UTC-5, EDT = UTC-4.
+    # Using UTC range that covers both: 12:00-03:00 UTC
+    - cron: "*/15 12-23,0-2 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gas-monitor
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Fetch AAA price and check freshness
+        id: freshness
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+          from datetime import date
+          from pathlib import Path
+
+          csv_path = Path("data/aaa_daily.csv")
+          today = date.today().isoformat()
+
+          # Check if today's price already exists
+          if csv_path.exists() and today in csv_path.read_text():
+              print(f"AAA price for {today} already in CSV")
+              with open("data_fetched.txt", "w") as f:
+                  f.write("false")
+              print("should_continue=true", file=open(os.environ["GITHUB_OUTPUT"], "a"))
+              sys.exit(0)
+
+          # Fetch today's price
+          print(f"Fetching AAA price for {today}...")
+          try:
+              import subprocess
+              result = subprocess.run(
+                  ["python", "-m", "scripts.log_aaa"],
+                  capture_output=True, text=True, timeout=60
+              )
+              print(result.stdout)
+              if result.stderr:
+                  print(result.stderr)
+          except Exception as e:
+              print(f"Failed to fetch AAA price: {e}")
+
+          # Check again
+          if csv_path.exists() and today in csv_path.read_text():
+              print(f"Successfully fetched AAA price for {today}")
+              with open("data_fetched.txt", "w") as f:
+                  f.write("true")
+              print("should_continue=true", file=open(os.environ["GITHUB_OUTPUT"], "a"))
+          else:
+              print(f"AAA price for {today} not yet available")
+              with open("data_fetched.txt", "w") as f:
+                  f.write("false")
+              # Still continue — model can run on yesterday's data
+              print("should_continue=true", file=open(os.environ["GITHUB_OUTPUT"], "a"))
+          PY
+
+      - name: Run forecast
+        if: steps.freshness.outputs.should_continue == 'true'
+        id: predict
+        env:
+          PYTHONUNBUFFERED: "1"
+          KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
+          KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
+        run: |
+          set -e
+          mkdir -p data
+
+          python -m src.cli_predict \
+            --auto-week \
+            --auto-asof \
+            --auto-bankroll \
+            --save \
+            --maker \
+            | tee data/cli_predict_stdout.txt
+
+      - name: Manage maker orders
+        if: steps.freshness.outputs.should_continue == 'true'
+        id: maker
+        env:
+          PYTHONUNBUFFERED: "1"
+          KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
+          KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
+        run: |
+          mkdir -p data
+
+          # 1. Prune orders that are now -EV (critical after new data)
+          python -m src.cli_maker_submit \
+            --prune \
+            --min-ev 0.0 \
+            --output data/maker_prune_log.json \
+            | tee data/cli_maker_prune_stdout.txt
+
+          # 2. Resize existing orders to match Kelly
+          python -m src.cli_maker_submit \
+            --resize \
+            --min-ev 0.5 \
+            --output data/maker_resize_log.json \
+            | tee data/cli_maker_resize_stdout.txt
+
+          # 3. Update outbid orders
+          python -m src.cli_maker_submit \
+            --update \
+            --min-ev 0.5 \
+            --output data/maker_update_log.json \
+            | tee data/cli_maker_update_stdout.txt
+
+          # 4. Place new maker orders
+          python -m src.cli_maker_submit \
+            --min-ev 0.5 \
+            --output data/maker_submission_log.json \
+            | tee data/cli_maker_submit_stdout.txt
+
+          # 5. Place/update exit orders for held positions
+          python -m src.cli_maker_submit \
+            --place-exits \
+            | tee data/cli_maker_exit_stdout.txt
+
+      - name: Build Discord message
+        if: steps.freshness.outputs.should_continue == 'true'
+        id: build_msg
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from datetime import datetime, timezone
+
+          def load_json(path: str):
+              p = Path(path)
+              if not p.exists():
+                  return None
+              try:
+                  return json.loads(p.read_text())
+              except Exception:
+                  return None
+
+          predict_meta = load_json("data/latest_predict_meta.json") or {}
+          prune_log = load_json("data/maker_prune_log.json") or {}
+          resize_log = load_json("data/maker_resize_log.json") or {}
+          update_log = load_json("data/maker_update_log.json") or {}
+          submit_log = load_json("data/maker_submission_log.json") or {}
+          exit_log = load_json("data/maker_exit_log.json") or {}
+
+          # Extract order changes from logs
+          def get_results(log, action_filter=None):
+              results = log.get("results", []) or []
+              if action_filter:
+                  return [r for r in results if r.get("action") in action_filter]
+              return results
+
+          pruned = get_results(prune_log, {"cancelled"})
+          resized = get_results(resize_log, {"resized"})
+          updated = get_results(update_log, {"updated"})
+          placed = get_results(submit_log)
+          placed = [r for r in placed if r.get("success") is True or r.get("dry_run") is True]
+          exit_placed = get_results(exit_log, {"placed", "repriced"})
+
+          has_changes = bool(pruned or resized or updated or placed or exit_placed)
+
+          if not has_changes:
+              Path("data/discord_skip.txt").write_text("skip")
+              print("No order changes; skipping Discord alert.")
+              raise SystemExit(0)
+
+          # Build message
+          parts = []
+
+          # Header
+          settlement = predict_meta.get("settlement_date", "?")
+          mean = predict_meta.get("forecast_mean", 0)
+          std = predict_meta.get("forecast_std", 0)
+          n_obs = predict_meta.get("n_observed", 0)
+          last_price = predict_meta.get("last_price", 0)
+          parts.append(
+              f"GAS FORECAST | Settlement {settlement}\n"
+              f"Last: ${last_price:.3f} | Mean: ${mean:.3f} | Std: ${std:.4f} | Obs: {n_obs}"
+          )
+
+          # Order changes
+          blocks = []
+
+          if pruned:
+              for p in pruned[:5]:
+                  blocks.append(
+                      f"CANCELLED: {p.get('ticker','')} {p.get('side','')} "
+                      f"@ {p.get('price',0)}c (EV={p.get('ev_c',0):+.1f}c)"
+                  )
+
+          if resized:
+              for r in resized[:5]:
+                  blocks.append(
+                      f"RESIZED: {r.get('ticker','')} {r.get('side','')} "
+                      f"{r.get('old_contracts',0)} -> {r.get('new_contracts',0)} ct"
+                  )
+
+          if updated:
+              for u in updated[:5]:
+                  blocks.append(
+                      f"UPDATED: {u.get('ticker','')} {u.get('side','')} "
+                      f"{u.get('old_price',0)}c -> {u.get('new_price',0)}c"
+                  )
+
+          if placed:
+              for p in placed[:10]:
+                  ticker = p.get("ticker", "")
+                  side = p.get("side", "")
+                  price = p.get("limit_price_c", 0)
+                  contracts = p.get("contracts_to_submit", 0)
+                  ev = p.get("ev_if_filled_c", 0)
+                  blocks.append(f"PLACED: {ticker} {side} @ {price}c ({contracts} ct, EV={ev:+.1f}c)")
+
+          if exit_placed:
+              for e in exit_placed[:5]:
+                  blocks.append(
+                      f"EXIT: {e.get('ticker','')} SELL {e.get('contracts',0)}x "
+                      f"{e.get('side','')} @ {e.get('sell_price_c',0)}c"
+                  )
+
+          if blocks:
+              parts.append("MAKER ORDERS\n" + "\n".join(blocks))
+
+          msg = "\n\n".join(parts)
+
+          # Discord limit
+          if len(msg) > 1900:
+              msg = msg[:1900] + "\n...(truncated)"
+
+          Path("data/discord_message.txt").write_text(msg)
+          print("Prepared Discord message.")
+          PY
+
+      - name: Post to Discord
+        if: steps.freshness.outputs.should_continue == 'true' && env.DISCORD_WEBHOOK_URL != '' && hashFiles('data/discord_message.txt') != ''
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -f data/discord_skip.txt ]; then
+            echo "Skipping Discord (no changes)"
+            exit 0
+          fi
+          python - <<'PY'
+          import os, requests
+          from pathlib import Path
+          msg_path = Path("data/discord_message.txt")
+          if not msg_path.exists():
+              print("No message file")
+              raise SystemExit(0)
+          msg = msg_path.read_text().strip()
+          if not msg:
+              print("Empty message")
+              raise SystemExit(0)
+          url = os.environ["DISCORD_WEBHOOK_URL"].strip()
+          r = requests.post(url, json={"content": msg}, timeout=20)
+          r.raise_for_status()
+          print("Discord alert sent.")
+          PY
+
+      - name: Commit data updates
+        if: steps.freshness.outputs.should_continue == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "gas-monitor-bot"
+          git config user.email "gas-monitor-bot@users.noreply.github.com"
+
+          # Stage data files
+          if [ -f data_fetched.txt ] && grep -q "true" data_fetched.txt; then
+            echo "New AAA data fetched — staging aaa_daily.csv"
+            git add data/aaa_daily.csv
+          fi
+
+          git add data/latest_predict.csv 2>/dev/null || true
+          git add data/latest_predict_meta.json 2>/dev/null || true
+          git add data/latest_maker_orders.json 2>/dev/null || true
+
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+
+          if git diff --cached --name-only | grep -q "aaa_daily.csv"; then
+            git commit -m "Update AAA price, predictions, and maker orders"
+          else
+            git commit -m "Update gas predictions and maker orders"
+          fi
+
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git pull --rebase --autostash origin ${GITHUB_REF_NAME} || true
+          git push origin HEAD:${GITHUB_REF_NAME}
