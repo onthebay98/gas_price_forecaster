@@ -1,31 +1,31 @@
 [
   {
-    "bucket": ">$4.020",
-    "ticker": "KXAAAGASW-26MAR30-4.020",
-    "side": "YES",
-    "limit_price_c": 6,
-    "current_bid_c": 5,
-    "current_ask_c": 9,
-    "p_model": 38.8,
-    "edge_pp": 32.8,
-    "ev_if_filled_c": 32.66,
-    "contracts": 997,
-    "kelly_full": 0.3478,
-    "kelly_scaled": 0.3478
-  },
-  {
     "bucket": ">$4.040",
     "ticker": "KXAAAGASW-26MAR30-4.040",
     "side": "YES",
     "limit_price_c": 3,
     "current_bid_c": 3,
     "current_ask_c": 4,
-    "p_model": 34.4,
-    "edge_pp": 31.4,
-    "ev_if_filled_c": 31.31,
-    "contracts": 1847,
-    "kelly_full": 0.323,
-    "kelly_scaled": 0.323
+    "p_model": 34.8,
+    "edge_pp": 31.8,
+    "ev_if_filled_c": 31.7,
+    "contracts": 1870,
+    "kelly_full": 0.327,
+    "kelly_scaled": 0.327
+  },
+  {
+    "bucket": ">$4.020",
+    "ticker": "KXAAAGASW-26MAR30-4.020",
+    "side": "YES",
+    "limit_price_c": 8,
+    "current_bid_c": 7,
+    "current_ask_c": 10,
+    "p_model": 39.2,
+    "edge_pp": 31.2,
+    "ev_if_filled_c": 31.05,
+    "contracts": 727,
+    "kelly_full": 0.338,
+    "kelly_scaled": 0.338
   },
   {
     "bucket": ">$4.060",
@@ -34,12 +34,12 @@
     "limit_price_c": 2,
     "current_bid_c": 2,
     "current_ask_c": 3,
-    "p_model": 30.2,
-    "edge_pp": 28.2,
-    "ev_if_filled_c": 28.16,
-    "contracts": 2465,
-    "kelly_full": 0.2875,
-    "kelly_scaled": 0.2875
+    "p_model": 30.4,
+    "edge_pp": 28.4,
+    "ev_if_filled_c": 28.4,
+    "contracts": 2487,
+    "kelly_full": 0.2899,
+    "kelly_scaled": 0.2899
   },
   {
     "bucket": ">$4.080",
@@ -48,12 +48,12 @@
     "limit_price_c": 1,
     "current_bid_c": 1,
     "current_ask_c": 2,
-    "p_model": 26.2,
-    "edge_pp": 25.2,
-    "ev_if_filled_c": 25.2,
-    "contracts": 4368,
-    "kelly_full": 0.2546,
-    "kelly_scaled": 0.2546
+    "p_model": 26.6,
+    "edge_pp": 25.6,
+    "ev_if_filled_c": 25.55,
+    "contracts": 4428,
+    "kelly_full": 0.2581,
+    "kelly_scaled": 0.2581
   },
   {
     "bucket": ">$4.100",
@@ -62,12 +62,12 @@
     "limit_price_c": 1,
     "current_bid_c": 1,
     "current_ask_c": 2,
-    "p_model": 22.6,
-    "edge_pp": 21.6,
-    "ev_if_filled_c": 21.6,
-    "contracts": 3744,
-    "kelly_full": 0.2182,
-    "kelly_scaled": 0.2182
+    "p_model": 22.7,
+    "edge_pp": 21.7,
+    "ev_if_filled_c": 21.7,
+    "contracts": 3761,
+    "kelly_full": 0.2192,
+    "kelly_scaled": 0.2192
   },
   {
     "bucket": ">$4.120",
@@ -76,12 +76,12 @@
     "limit_price_c": 1,
     "current_bid_c": 0,
     "current_ask_c": 2,
-    "p_model": 19.2,
-    "edge_pp": 18.2,
-    "ev_if_filled_c": 18.18,
-    "contracts": 3151,
-    "kelly_full": 0.1837,
-    "kelly_scaled": 0.1837
+    "p_model": 19.3,
+    "edge_pp": 18.3,
+    "ev_if_filled_c": 18.26,
+    "contracts": 3165,
+    "kelly_full": 0.1845,
+    "kelly_scaled": 0.1845
   },
   {
     "bucket": ">$4.140",
@@ -92,10 +92,10 @@
     "current_ask_c": 2,
     "p_model": 16.2,
     "edge_pp": 15.2,
-    "ev_if_filled_c": 15.22,
-    "contracts": 2638,
-    "kelly_full": 0.1538,
-    "kelly_scaled": 0.1538
+    "ev_if_filled_c": 15.13,
+    "contracts": 2622,
+    "kelly_full": 0.1529,
+    "kelly_scaled": 0.1529
   },
   {
     "bucket": ">$4.160",
@@ -106,10 +106,10 @@
     "current_ask_c": 2,
     "p_model": 13.4,
     "edge_pp": 12.4,
-    "ev_if_filled_c": 12.38,
-    "contracts": 2145,
-    "kelly_full": 0.1251,
-    "kelly_scaled": 0.1251
+    "ev_if_filled_c": 12.42,
+    "contracts": 2152,
+    "kelly_full": 0.1255,
+    "kelly_scaled": 0.1255
   },
   {
     "bucket": ">$4.180",
@@ -118,12 +118,12 @@
     "limit_price_c": 1,
     "current_bid_c": 1,
     "current_ask_c": 2,
-    "p_model": 11.1,
-    "edge_pp": 10.1,
-    "ev_if_filled_c": 10.04,
-    "contracts": 1740,
-    "kelly_full": 0.1014,
-    "kelly_scaled": 0.1014
+    "p_model": 11.2,
+    "edge_pp": 10.2,
+    "ev_if_filled_c": 10.13,
+    "contracts": 1755,
+    "kelly_full": 0.1023,
+    "kelly_scaled": 0.1023
   },
   {
     "bucket": ">$4.200",
@@ -132,12 +132,12 @@
     "limit_price_c": 1,
     "current_bid_c": 0,
     "current_ask_c": 2,
-    "p_model": 9.0,
-    "edge_pp": 8.0,
-    "ev_if_filled_c": 7.95,
-    "contracts": 1378,
-    "kelly_full": 0.0803,
-    "kelly_scaled": 0.0803
+    "p_model": 9.1,
+    "edge_pp": 8.1,
+    "ev_if_filled_c": 8.08,
+    "contracts": 1400,
+    "kelly_full": 0.0816,
+    "kelly_scaled": 0.0816
   },
   {
     "bucket": ">$4.240",
@@ -146,12 +146,12 @@
     "limit_price_c": 1,
     "current_bid_c": 0,
     "current_ask_c": 2,
-    "p_model": 5.8,
-    "edge_pp": 4.8,
-    "ev_if_filled_c": 4.79,
-    "contracts": 830,
-    "kelly_full": 0.0484,
-    "kelly_scaled": 0.0484
+    "p_model": 5.9,
+    "edge_pp": 4.9,
+    "ev_if_filled_c": 4.84,
+    "contracts": 838,
+    "kelly_full": 0.0489,
+    "kelly_scaled": 0.0489
   },
   {
     "bucket": ">$4.260",
