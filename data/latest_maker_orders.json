@@ -6,26 +6,26 @@
     "limit_price_c": 1,
     "current_bid_c": 1,
     "current_ask_c": 2,
-    "p_model": 29.5,
-    "edge_pp": 28.5,
-    "ev_if_filled_c": 28.49,
-    "contracts": 11852,
-    "kelly_full": 0.2878,
-    "kelly_scaled": 0.2878
+    "p_model": 29.8,
+    "edge_pp": 28.8,
+    "ev_if_filled_c": 28.76,
+    "contracts": 11964,
+    "kelly_full": 0.2906,
+    "kelly_scaled": 0.2906
   },
   {
     "bucket": ">$4.000",
     "ticker": "KXAAAGASW-26MAR30-4.000",
     "side": "YES",
-    "limit_price_c": 16,
-    "current_bid_c": 15,
-    "current_ask_c": 17,
-    "p_model": 34.7,
-    "edge_pp": 18.7,
-    "ev_if_filled_c": 18.5,
-    "contracts": 571,
-    "kelly_full": 0.2209,
-    "kelly_scaled": 0.2209
+    "limit_price_c": 19,
+    "current_bid_c": 18,
+    "current_ask_c": 23,
+    "p_model": 35.0,
+    "edge_pp": 16.0,
+    "ev_if_filled_c": 15.69,
+    "contracts": 423,
+    "kelly_full": 0.1944,
+    "kelly_scaled": 0.1944
   },
   {
     "bucket": ">$4.100",
@@ -36,10 +36,10 @@
     "current_ask_c": 2,
     "p_model": 13.4,
     "edge_pp": 12.4,
-    "ev_if_filled_c": 12.42,
-    "contracts": 5166,
-    "kelly_full": 0.1255,
-    "kelly_scaled": 0.1255
+    "ev_if_filled_c": 12.39,
+    "contracts": 5154,
+    "kelly_full": 0.1252,
+    "kelly_scaled": 0.1252
   },
   {
     "bucket": ">$4.120",
@@ -48,25 +48,25 @@
     "limit_price_c": 1,
     "current_bid_c": 0,
     "current_ask_c": 2,
-    "p_model": 10.6,
-    "edge_pp": 9.6,
-    "ev_if_filled_c": 9.6,
-    "contracts": 3993,
-    "kelly_full": 0.097,
-    "kelly_scaled": 0.097
+    "p_model": 10.5,
+    "edge_pp": 9.5,
+    "ev_if_filled_c": 9.46,
+    "contracts": 3935,
+    "kelly_full": 0.0956,
+    "kelly_scaled": 0.0956
   },
   {
     "bucket": ">$3.990",
     "ticker": "KXAAAGASW-26MAR30-3.990",
-    "side": "YES",
-    "limit_price_c": 30,
-    "current_bid_c": 30,
-    "current_ask_c": 31,
-    "p_model": 37.5,
-    "edge_pp": 7.5,
-    "ev_if_filled_c": 7.17,
-    "contracts": 142,
-    "kelly_full": 0.103,
-    "kelly_scaled": 0.103
+    "side": "NO",
+    "limit_price_c": 58,
+    "current_bid_c": 57,
+    "current_ask_c": 63,
+    "p_model": 62.2,
+    "edge_pp": 4.2,
+    "ev_if_filled_c": 3.76,
+    "contracts": 65,
+    "kelly_full": 0.0904,
+    "kelly_scaled": 0.0904
   }
 ]
