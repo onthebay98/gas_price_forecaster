@@ -8,10 +8,24 @@
     "current_ask_c": 4,
     "p_model": 29.9,
     "edge_pp": 26.9,
-    "ev_if_filled_c": 26.8,
-    "contracts": 3794,
-    "kelly_full": 0.2765,
-    "kelly_scaled": 0.2765
+    "ev_if_filled_c": 26.84,
+    "contracts": 3800,
+    "kelly_full": 0.2769,
+    "kelly_scaled": 0.2769
+  },
+  {
+    "bucket": ">$3.990",
+    "ticker": "KXAAAGASW-26MAR30-3.990",
+    "side": "NO",
+    "limit_price_c": 42,
+    "current_bid_c": 41,
+    "current_ask_c": 47,
+    "p_model": 62.3,
+    "edge_pp": 20.3,
+    "ev_if_filled_c": 19.89,
+    "contracts": 341,
+    "kelly_full": 0.3455,
+    "kelly_scaled": 0.3455
   },
   {
     "bucket": ">$4.080",
@@ -20,12 +34,12 @@
     "limit_price_c": 1,
     "current_bid_c": 0,
     "current_ask_c": 2,
-    "p_model": 16.8,
-    "edge_pp": 15.8,
-    "ev_if_filled_c": 15.75,
-    "contracts": 6552,
-    "kelly_full": 0.1591,
-    "kelly_scaled": 0.1591
+    "p_model": 16.9,
+    "edge_pp": 15.9,
+    "ev_if_filled_c": 15.84,
+    "contracts": 6589,
+    "kelly_full": 0.16,
+    "kelly_scaled": 0.16
   },
   {
     "bucket": ">$4.000",
@@ -34,26 +48,12 @@
     "limit_price_c": 19,
     "current_bid_c": 18,
     "current_ask_c": 21,
-    "p_model": 35.0,
-    "edge_pp": 16.0,
-    "ev_if_filled_c": 15.75,
-    "contracts": 425,
-    "kelly_full": 0.1951,
-    "kelly_scaled": 0.1951
-  },
-  {
-    "bucket": ">$3.990",
-    "ticker": "KXAAAGASW-26MAR30-3.990",
-    "side": "NO",
-    "limit_price_c": 47,
-    "current_bid_c": 46,
-    "current_ask_c": 53,
-    "p_model": 62.2,
-    "edge_pp": 15.2,
-    "ev_if_filled_c": 14.78,
-    "contracts": 248,
-    "kelly_full": 0.2812,
-    "kelly_scaled": 0.2812
+    "p_model": 35.1,
+    "edge_pp": 16.1,
+    "ev_if_filled_c": 15.8,
+    "contracts": 426,
+    "kelly_full": 0.1957,
+    "kelly_scaled": 0.1957
   },
   {
     "bucket": ">$4.260",
@@ -62,11 +62,11 @@
     "limit_price_c": 98,
     "current_bid_c": 98,
     "current_ask_c": 100,
-    "p_model": 98.7,
-    "edge_pp": 0.7,
-    "ev_if_filled_c": 0.65,
-    "contracts": 142,
-    "kelly_full": 0.3316,
-    "kelly_scaled": 0.3316
+    "p_model": 98.8,
+    "edge_pp": 0.8,
+    "ev_if_filled_c": 0.8,
+    "contracts": 174,
+    "kelly_full": 0.4082,
+    "kelly_scaled": 0.4082
   }
 ]
