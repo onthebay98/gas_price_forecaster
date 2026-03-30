@@ -1,27 +1,20 @@
 {
-  "week_start": "2026-03-23",
+  "week_start": "2026-03-30",
   "settlement_target": "next_monday_price",
-  "settlement_date": "2026-03-30",
-  "n_observed": 5,
+  "settlement_date": "2026-04-06",
+  "n_observed": 0,
   "last_obs_date": "2026-03-27",
   "last_price": 3.981,
-  "forecast_mean": 3.9463858247105357,
-  "forecast_std": 0.1386891713715999,
-  "forecast_median": 3.9463794052588126,
-  "forecast_p5": 3.718340343191052,
-  "forecast_p95": 4.175105383265698,
+  "forecast_mean": 3.6741126915660502,
+  "forecast_std": 0.26944940354501734,
+  "forecast_median": 3.6717218808114374,
+  "forecast_p5": 3.2318087913389775,
+  "forecast_p95": 4.116559456119263,
   "ar1_phi": 0.45033420505890426,
   "ar1_sigma": 0.01513887780865022,
   "ar1_r_squared": 0.6101939346150101,
   "ar1_n_obs": 114,
   "ar1_train_start": "2025-12-03",
   "ar1_train_end": "2026-03-27",
-  "n_sims": 25000,
-  "observed_prices": [
-    3.942,
-    3.956,
-    3.977,
-    3.983,
-    3.981
-  ]
+  "n_sims": 25000
 }
