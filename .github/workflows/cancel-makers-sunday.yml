@@ -1,10 +1,8 @@
 name: Cancel Gas Makers (Sunday Market Close)
 
 on:
-  schedule:
-    # Sunday 11:55 PM ET → Monday 03:55 UTC (EST) / 04:55 UTC (EDT)
-    # Use earlier time to cover both timezones
-    - cron: "55 3 * * 1"
+  # schedule disabled — project paused (2026-03-30)
+  # - cron: "55 3 * * 1"
   workflow_dispatch: {}
 
 permissions:

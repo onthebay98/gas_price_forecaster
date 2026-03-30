@@ -1,11 +1,8 @@
 name: Gas Price Monitor (Kalshi)
 
 on:
-  schedule:
-    # Every 15 min during active hours (7 AM – 10 PM ET)
-    # GitHub cron is UTC. EST = UTC-5, EDT = UTC-4.
-    # Using UTC range that covers both: 12:00-03:00 UTC
-    - cron: "*/15 12-23,0-2 * * *"
+  # schedule disabled — AAA added Cloudflare Turnstile (2026-03-30)
+  # - cron: "*/15 12-23,0-2 * * *"
   workflow_dispatch: {}
 
 permissions:

@@ -8,8 +8,8 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  schedule:
-    - cron: "0 14 * * *"   # daily at 14:00 UTC (~9am ET)
+  # schedule disabled — AAA added Cloudflare Turnstile (2026-03-30)
+  # - cron: "0 14 * * *"   # daily at 14:00 UTC (~9am ET)
   workflow_dispatch:
 
 jobs:
